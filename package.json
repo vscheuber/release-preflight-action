@@ -1,7 +1,7 @@
 {
-    "name": "release-preflight-action",
-    "version": "1.0.0",
-    "private": true,
-    "description": "GitHub Action that validates release candidates before publish",
-    "license": "MIT"
+  "name": "release-preflight-action",
+  "version": "1.0.1-1",
+  "private": true,
+  "description": "GitHub Action that validates release candidates before publish",
+  "license": "MIT"
 }
