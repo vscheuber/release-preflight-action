@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release-type:
+        description: 'Release kind: prerelease | patch | minor | major'
+        type: choice
+        options:
+          - prerelease
+          - patch
+          - minor
+          - major
+        default: 'prerelease'
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Compute next version
+        id: version
+        uses: vscheuber/version-bump-action@v1
+        with:
+          release-type: ${{ inputs.release-type }}
+
+      - name: Run preflight checks using this action
+        uses: ./
+        with:
+          candidate-version: ${{ steps.version.outputs.newVersion }}
+          candidate-tag: ${{ steps.version.outputs.newTag }}
+          package-name: '@rockcarver/release-preflight-action'
+          current-version: ${{ steps.version.outputs.base }}
+          check-remote-tag: true
+          check-npm-version: true
+          check-version-drift: true
+
+      - name: Update package manifests
+        uses: vscheuber/manifest-version-update-action@v1
+        with:
+          version: ${{ steps.version.outputs.newVersion }}
+
+      - name: Update changelog using AI action
+        id: changelog
+        uses: vscheuber/ai-changelog-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          llm-api-key: ${{ secrets.LLM_API_KEY }}
+          target-user-type: developer
+          release-type: ${{ steps.version.outputs.action_release_type }}
+          version: ${{ steps.version.outputs.newVersion }}
+          promote-release: true
+          release-tag: ${{ steps.version.outputs.newTag }}
+          release-notes-path: RELEASE_NOTES.md
+          commit: false
+
+      - name: Commit changelog and version
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md package.json
+          if git diff --cached --quiet; then
+            echo "No release changes to commit"
+          else
+            git commit -m "chore: release ${{ steps.version.outputs.newTag }}"
+            git push origin HEAD
+          fi
+
+      - name: Create and push tag
+        run: |
+          set -euo pipefail
+          git fetch --tags
+          tag='${{ steps.version.outputs.newTag }}'
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            existing_commit="$(git rev-list -n 1 "${tag}")"
+            current_commit="$(git rev-parse HEAD)"
+            if [[ "$existing_commit" == "$current_commit" ]]; then
+              echo "Tag ${tag} already exists on the current commit; skipping"
+              exit 0
+            fi
+
+            echo "Tag ${tag} already exists on a different commit"
+            exit 1
+          fi
+          git tag -a "${tag}" -m "Release ${tag}"
+          git push origin "${tag}"
+
+      - name: Update major and minor action tags
+        if: ${{ steps.version.outputs.preRelease == 'false' }}
+        run: |
+          set -euo pipefail
+          version='${{ steps.version.outputs.newVersion }}'
+          release_tag='${{ steps.version.outputs.newTag }}'
+
+          IFS='.' read -r major minor patch <<< "$version"
+          major_tag="v${major}"
+          minor_tag="v${major}.${minor}"
+
+          git tag -fa "$major_tag" -m "Update ${major_tag} to ${release_tag}"
+          git tag -fa "$minor_tag" -m "Update ${minor_tag} to ${release_tag}"
+
+          git push origin "refs/tags/${major_tag}" --force
+          git push origin "refs/tags/${minor_tag}" --force
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.version.outputs.newTag }}
+          IS_PRERELEASE: ${{ steps.version.outputs.preRelease }}
+        run: |
+          set -euo pipefail
+          args=(release create "$RELEASE_TAG" --notes-file RELEASE_NOTES.md)
+          if [[ "$IS_PRERELEASE" == "true" ]]; then
+            args+=(--prerelease)
+          fi
+          gh "${args[@]}"

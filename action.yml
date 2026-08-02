@@ -1,0 +1,79 @@
+name: 'Release Preflight Action'
+description: 'Validate a candidate release version and tag against git and npm before publishing, failing fast on collisions or drift'
+author: 'Volker Scheuber'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  candidate-version:
+    description: 'Candidate semantic version, e.g. 1.2.3 or 1.2.3-1'
+    required: true
+  candidate-tag:
+    description: 'Candidate git tag, e.g. v1.2.3'
+    required: true
+  package-name:
+    description: 'npm package name used for publish/version checks'
+    required: false
+    default: ''
+  current-version:
+    description: 'Current manifest version used for drift checks'
+    required: false
+    default: ''
+  check-remote-tag:
+    description: 'Whether to fail when candidate tag already exists in remote'
+    required: false
+    default: 'true'
+  check-npm-version:
+    description: 'Whether to fail when candidate version already exists on npm'
+    required: false
+    default: 'true'
+  check-version-drift:
+    description: 'Whether to compare current-version against latest npm/tag version'
+    required: false
+    default: 'false'
+  git-remote:
+    description: 'Git remote name to query for tags'
+    required: false
+    default: 'origin'
+
+outputs:
+  passed:
+    description: 'true when all enabled checks passed'
+    value: ${{ steps.preflight.outputs.passed }}
+  tag_exists:
+    description: 'true when candidate tag exists in remote'
+    value: ${{ steps.preflight.outputs.tag_exists }}
+  npm_version_exists:
+    description: 'true when package@candidate-version exists on npm'
+    value: ${{ steps.preflight.outputs.npm_version_exists }}
+  drift_detected:
+    description: 'true when current-version is behind latest known npm/tag version'
+    value: ${{ steps.preflight.outputs.drift_detected }}
+  latest_npm_version:
+    description: 'Latest version found on npm for package-name'
+    value: ${{ steps.preflight.outputs.latest_npm_version }}
+  latest_tag_version:
+    description: 'Latest semantic version found in git tags using v-prefix filter'
+    value: ${{ steps.preflight.outputs.latest_tag_version }}
+  latest_known_version:
+    description: 'Highest version from npm/tag sources used by drift check'
+    value: ${{ steps.preflight.outputs.latest_known_version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: preflight
+      shell: bash
+      env:
+        CANDIDATE_VERSION: ${{ inputs.candidate-version }}
+        CANDIDATE_TAG: ${{ inputs.candidate-tag }}
+        PACKAGE_NAME: ${{ inputs.package-name }}
+        CURRENT_VERSION: ${{ inputs.current-version }}
+        CHECK_REMOTE_TAG: ${{ inputs.check-remote-tag }}
+        CHECK_NPM_VERSION: ${{ inputs.check-npm-version }}
+        CHECK_VERSION_DRIFT: ${{ inputs.check-version-drift }}
+        GIT_REMOTE: ${{ inputs.git-remote }}
+      run: |
+        bash "${{ github.action_path }}/scripts/preflight.sh"
