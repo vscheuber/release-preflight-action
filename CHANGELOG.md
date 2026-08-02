@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [v1.0.1] - 2026-08-02
+
+### Added
+- Introduced the release preflight action, which includes validation checks for versions and tags to ensure consistency and correctness before a release. This feature helps prevent common release errors by verifying that version numbers and tags are correctly formatted and aligned with the repository's history. (commit 24edd29)
+
 ## [v1.0.1-1] - 2026-08-02
 
 ### Added
