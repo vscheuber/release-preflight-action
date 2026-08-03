@@ -3,5 +3,8 @@
   "version": "1.0.1",
   "private": true,
   "description": "GitHub Action that validates release candidates before publish",
+  "scripts": {
+    "test": "bash test/preflight.test.sh"
+  },
   "license": "MIT"
 }

@@ -29,6 +29,14 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Run unit tests
+        run: npm test
+
       - name: Compute next version
         id: version
         uses: vscheuber/version-bump-action@v1
