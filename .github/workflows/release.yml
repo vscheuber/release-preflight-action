@@ -35,12 +35,12 @@ jobs:
         with:
           release-type: ${{ inputs.release-type }}
 
-      - name: Run preflight checks using this action
+      - name: Release preflight checks
         uses: ./
         with:
           candidate-version: ${{ steps.version.outputs.newVersion }}
           candidate-tag: ${{ steps.version.outputs.newTag }}
-          package-name: '@rockcarver/release-preflight-action'
+          package-name: 'release-preflight-action'
           current-version: ${{ steps.version.outputs.base }}
           check-remote-tag: true
           check-npm-version: true
