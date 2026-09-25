@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [v1.0.3] - 2026-09-25
+
+### Fixed
+- Corrected preflight checks to not treat a prerelease of the upcoming version as drift from a stable base, ensuring accurate version validation and reducing false positives during the release process. (commit a15b144)
+
 ## [v1.0.2] - 2026-08-03
 
 ### Added
@@ -28,3 +33,5 @@
 ### Added
 - Initial release preflight action for validating candidate versions and tags against git and npm.
 - Optional checks for remote tag collisions, npm version collisions, and version drift from latest known release.
+
+[v1.0.3]: https://github.com/vscheuber/release-preflight-action/compare/v1...v1.0.3
