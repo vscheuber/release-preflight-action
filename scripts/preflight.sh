@@ -17,6 +17,7 @@ drift_detected='false'
 latest_npm_version=''
 latest_tag_version=''
 latest_known_version=''
+drift_reference_version=''
 
 require_cmd() {
   local cmd="$1"
@@ -105,6 +106,18 @@ if (!a || !b) {
 
 console.log(String(cmp(a, b)));
 NODE
+}
+
+is_prerelease() {
+  [[ "$1" == *-* ]]
+}
+
+stable_only() {
+  local value=''
+  while IFS= read -r value; do
+    [[ -z "$value" ]] && continue
+    is_prerelease "$value" || printf '%s\n' "$value"
+  done
 }
 
 max_semver() {
@@ -208,15 +221,28 @@ if [[ "$check_version_drift" == 'true' ]]; then
 
   latest_known_version="$(printf '%s\n%s\n' "$latest_npm_version" "$latest_tag_version" | max_semver)"
 
-  if [[ -n "$latest_known_version" ]]; then
+  # A stable current-version is the base a patch/minor/major bump works from.
+  # Pre-releases of the upcoming version (e.g. 1.2.4-1 over a 1.2.3 base) are
+  # expected to be ahead of it -- that release promotes them -- so only a
+  # newer *stable* release counts as drift. A prerelease base is compared
+  # against everything.
+  drift_reference_version="$latest_known_version"
+  if [[ -n "$current_version" ]] && ! is_prerelease "$current_version"; then
+    drift_reference_version="$({
+      printf '%s\n' "$latest_npm_version"
+      git ls-remote --tags --refs "$git_remote" 'refs/tags/v*' | awk -F'/' '{print $3}' | sed 's/^v//'
+    } | stable_only | max_semver)"
+  fi
+
+  if [[ -n "$drift_reference_version" ]]; then
     if ! is_semver "$current_version"; then
       echo "current-version must be a valid semver when check-version-drift=true"
       exit 1
     fi
 
-    if [[ "$(compare_semver "$current_version" "$latest_known_version")" == '-1' ]]; then
+    if [[ "$(compare_semver "$current_version" "$drift_reference_version")" == '-1' ]]; then
       drift_detected='true'
-      fail_check "current-version (${current_version}) is behind latest known version (${latest_known_version})."
+      fail_check "current-version (${current_version}) is behind latest known version (${drift_reference_version})."
     fi
   fi
 fi

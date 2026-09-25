@@ -8,7 +8,7 @@ Depending on enabled inputs, this action can validate:
 
 - Candidate tag does not already exist in remote git tags
 - Candidate package version is not already published on npm
-- Current version is not behind the latest known npm/tag version (drift check)
+- Current version is not behind the latest known npm/tag version (drift check). A stable current-version is only compared against stable releases, so an existing prerelease of the upcoming version (e.g. `1.2.4-1` over a `1.2.3` base) doesn't block the release that promotes it; a prerelease current-version is compared against all versions.
 
 This action does not compute versions, update manifests, publish to npm, or create tags.
 
@@ -28,7 +28,7 @@ This action does not compute versions, update manifests, publish to npm, or crea
 - `passed`: `true` when all enabled checks passed
 - `tag_exists`: `true` when candidate tag exists in remote
 - `npm_version_exists`: `true` when package@candidate-version exists on npm
-- `drift_detected`: `true` when current-version is behind latest known npm/tag version
+- `drift_detected`: `true` when current-version is behind latest known npm/tag version (latest known stable version when current-version is stable)
 - `latest_npm_version`: latest version discovered on npm for package-name
 - `latest_tag_version`: latest `v*` semantic version from git tags
 - `latest_known_version`: highest version across npm/tag sources
