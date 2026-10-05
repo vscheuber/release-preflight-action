@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [v1.0.4] - 2026-10-05
+
+### Changed
+- Internal pipeline update release. This release updates CI/CD or release automation under `.github/` without changing functional behavior.
+
 ## [v1.0.3] - 2026-09-25
 
 ### Fixed
@@ -34,4 +39,5 @@
 - Initial release preflight action for validating candidate versions and tags against git and npm.
 - Optional checks for remote tag collisions, npm version collisions, and version drift from latest known release.
 
+[v1.0.4]: https://github.com/vscheuber/release-preflight-action/compare/v1...v1.0.4
 [v1.0.3]: https://github.com/vscheuber/release-preflight-action/compare/v1...v1.0.3
